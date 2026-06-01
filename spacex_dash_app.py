@@ -1,12 +1,11 @@
 # Import required libraries
-import pandas as pd
 import dash
-import dash_html_components as html
-import dash_core_components as dcc
+from dash import dcc, html
 from dash.dependencies import Input, Output
+import pandas as pd
 import plotly.express as px
 
-# Read the airline data into pandas dataframe
+# Read the SpaceX launch data into a pandas dataframe.
 spacex_df = pd.read_csv("spacex_launch_dash.csv")
 max_payload = spacex_df['Payload Mass (kg)'].max()
 min_payload = spacex_df['Payload Mass (kg)'].min()
@@ -58,14 +57,16 @@ app.layout = html.Div(children=[html.H1('SpaceX Launch Records Dashboard',
                Input(component_id='site-dropdown', component_property='value'))
 def get_pie_chart(launch_site):
     if launch_site == 'All Sites':
-        fig = px.pie(values=spacex_df.groupby('Launch Site')['class'].mean(), 
-                     names=spacex_df.groupby('Launch Site')['Launch Site'].first(),
+        success_by_site = spacex_df.groupby('Launch Site')['class'].sum()
+        fig = px.pie(values=success_by_site.values,
+                     names=success_by_site.index,
                      title='Total Success Launches by Site')
     else:
-        fig = px.pie(values=spacex_df[spacex_df['Launch Site']==str(launch_site)]['class'].value_counts(normalize=True), 
-                     names=spacex_df['class'].unique(), 
+        site_df = spacex_df[spacex_df['Launch Site'] == str(launch_site)]
+        fig = px.pie(values=site_df['class'].value_counts().values,
+                     names=site_df['class'].value_counts().index,
                      title='Total Success Launches for Site {}'.format(launch_site))
-    return(fig)
+    return fig
 
 # TASK 4:
 # Add a callback function for `site-dropdown` and `payload-slider` as inputs, `success-payload-scatter-chart` as output
@@ -81,16 +82,16 @@ def get_payload_chart(launch_site, payload_mass):
                 hover_data=['Launch Site'],
                 title='Correlation Between Payload and Success for All Sites')
     else:
-        df = spacex_df[spacex_df['Launch Site']==str(launch_site)]
+        df = spacex_df[spacex_df['Launch Site'] == str(launch_site)]
         fig = px.scatter(df[df['Payload Mass (kg)'].between(payload_mass[0], payload_mass[1])], 
                 x="Payload Mass (kg)",
                 y="class",
                 color="Booster Version Category",
                 hover_data=['Launch Site'],
                 title='Correlation Between Payload and Success for Site {}'.format(launch_site))
-    return(fig)
+    return fig
 
 
 # Run the app
 if __name__ == '__main__':
-    app.run_server()
+    app.run_server(debug=True)
